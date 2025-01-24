@@ -3,10 +3,10 @@ let myMessageAPI = null
 
 const ExampleNamathPurchaseProviderFactory = {
   id: 'cf88699f-c9a7-426e-9fbb-74699b5d94c1', //generate a uuid that you want
-  description: 'Create a Namath Instance that sends purchases to ExampleNamathPurchaseProvider', //this text shows up in Namath when users click the '+' button to add a provider
+  description: 'Create a Namath Instance that sends Purchases to ExampleNamathPurchaseProvider', //this text shows up in Namath when users click the '+' button to add a provider
   showFactoriesToUser: true,
   persistProviders: true,
-  createProvider(jancy, state=null) {
+  createProvider(jancy, state={}) {
     return new ExampleNamathPurchaseProvider(jancy, state)
   },
   addProvider(jancy, browserWindow) {
@@ -19,6 +19,8 @@ const ExampleNamathPurchaseProviderFactory = {
  * {
  *   "uuid": "b2650836-b281-4ea5-9474-89312cbe8f51",
  *   "cartUpdated": new Date(), // this is a date object that indicates when the cart was last updated
+ *   "cartCreatedTime": new Date(), // this is a date object that indicates when the cart was created
+ *   "cartExpirationTime": new Date(), // this is a date object that indicates when the cart will expire
  *   "fieldColors": {}, // this is an object that contains the colors of the fields in the purchase, mostly internal
  *   "tab": "d7700243", // this is the tab id that the purchase was sent from
  *   "row": null, //  the rows of the tickets in the purchase
@@ -64,7 +66,7 @@ class ExampleNamathPurchaseProvider {
     return `Some friendly info about this provider will be displayed in namath`
   }
   /**
-   * Send the cart to where ever you want to send it
+   * Send the cart to where ever you want to send it. The UI test button will call this function
    * @param {*} param0 - {cart is the cart object with all the sale info
    * tab is the jancy tab object that the cart was sent from,
    * respFunction is a callback that you call when you get a response from the provider
@@ -89,9 +91,6 @@ class ExampleNamathPurchaseProvider {
       instance_id: this.instance_id,
       type: this.type
     }
-  }
-  test() {
-    myMessageAPI.sendTest()
   }
   editProvider(jancy, browserWindow, provider) {
     if (!provider) {
@@ -209,6 +208,13 @@ function providerDialog (jancy, browserWindow, provider=null, edit=false) {
     providerWindow.show()
   })
 }
+/**
+ * This is an example of a class that you would create to send messages to your service. E.G. this is
+ * what talks to Discord or Slack or whatever service you are trying to send messages to.
+ * 
+ * The instance of your Provider you create can call this to send messages to your service.
+ * Alternatively, you can just call your service from your Provider directly.
+ */
 class MyMessageAPI extends EventEmitter {
   
   constructor(jancy) {
@@ -219,9 +225,6 @@ class MyMessageAPI extends EventEmitter {
   sendPurchase({key}, {cart, wantsResponse}) {
     console.log('purchase sent to with key', key)
     this.purchases.push(cart)
-  }
-  sendTest() {
-    console.log('test sent')
   }
 }
 
@@ -238,15 +241,9 @@ module.exports = {
     
     myMessageAPI = new MyMessageAPI(jancy)
 
-    //check to see if namath is ready to add this provider factory
-    const namath_check = setInterval(() => {
-      const namath = jancy.getInterface('namathAPI')
-      if (namath) {
-        namath.addFactory(ExampleNamathPurchaseProviderFactory)
-        clearInterval(namath_check)
-      }
-      
-    }, 500);
+    jancy.getInterfaceAsync('namathAPI').then((namath) => {
+      namath.addFactory(ExampleNamathPurchaseProviderFactory)
+    })
 
     jancy.registerInterface('myMessageAPI', myMessageAPI)
   },

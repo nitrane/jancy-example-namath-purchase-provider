@@ -1,4 +1,4 @@
-# Jancy Example Namath Provider
+# Jancy Example Namath Purchase Provider
 
 ## Structure of the Plug-in
 - `example-namath-purchase-provider/package.json` - A simple file that describes the plugin to Jancy and specifies an entry point. `src/index.js` in this example.
